@@ -13,7 +13,9 @@ This is a Claude Code wrapper project that provides a FastAPI-based web service 
 
 ### Server (app.py)
 - FastAPI application with CORS middleware enabled
-- Single endpoint `/runs` that accepts POST requests with prompts
+- Two main endpoints:
+  - `/runs`: Accepts POST requests with prompts for Claude CLI execution
+  - `/workspaces`: Accepts POST requests for workspace management
 - Executes the Claude CLI (`claude` binary) as a subprocess
 - Streams both stdout and stderr as Server-Sent Events (SSE)
 - Includes heartbeat mechanism to keep connections alive
@@ -64,6 +66,11 @@ python client.py "Your prompt here" --url http://localhost:8000/runs
 - **Request Body**: `{"prompt": "string"}`
 - **Response**: Server-Sent Events stream with JSON payloads
 - **Stream Format**: Includes stdout data, stderr messages, and completion status
+
+### POST /workspaces
+- **Request Body**: `{"id": "string"}`
+- **Response**: JSON object with workspace creation details
+- **Function**: Creates a new workspace directory with the specified ID
 
 ## Error Handling
 

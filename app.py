@@ -1,7 +1,9 @@
 import asyncio
 import json
+import os
 from contextlib import suppress
-from typing import AsyncGenerator, Optional
+from pathlib import Path
+from typing import AsyncGenerator, Optional, List
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +17,10 @@ CLAUDE_BINARY = "claude"
 
 class RunRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
+
+
+class WorkspaceRequest(BaseModel):
+    id: str = Field(..., min_length=1, description="ID unique du workspace")
 
 
 app = FastAPI()
@@ -167,3 +173,45 @@ async def create_run(request: Request, run_request: RunRequest) -> StreamingResp
     }
 
     return StreamingResponse(event_stream(), headers=headers)
+
+
+@app.post("/workspaces")
+async def create_workspace(workspace_request: WorkspaceRequest):
+    """
+    Crée un workspace avec un ID unique.
+
+    Args:
+        workspace_request: Contient l'ID obligatoire du workspace
+
+    Returns:
+        Dictionnaire avec les informations du workspace créé
+    """
+    workspace_id = workspace_request.id
+
+    # Créer le répertoire du workspace
+    workspace_dir = Path(f"workspaces/{workspace_id}")
+
+    try:
+        workspace_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Le workspace '{workspace_id}' existe déjà."
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de la création du workspace: {str(e)}"
+        )
+
+    workspace_info = {
+        "id": workspace_id,
+        "path": str(workspace_dir.absolute()),
+    }
+
+    return {
+        "message": f"Workspace '{workspace_id}' créé avec succès",
+        "workspace": workspace_info
+    }
+
+
